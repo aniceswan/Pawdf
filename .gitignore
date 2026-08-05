@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build/packaging outputs (never commit binaries)
+build/
+dist/
+*.spec.bak
+vendor/
+
+# Editors/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local scratch
+*.tmp
+tests/fixtures/generated/
+.pawdf_ux_backups/
+# Private real-world compatibility corpus and local reports
+tests/fixtures/corpus/*
+!tests/fixtures/corpus/README.md
+corpus-report.json
+benchmark-result.json
+pawdf-diagnostics-*.zip

@@ -1,0 +1,127 @@
+# Pawdf end-user installer for Windows.
+# No Git, Python, pip, compiler, source checkout, or administrator access.
+[CmdletBinding()]
+param(
+    [string]$Version = "latest",
+    [string]$SourceDirectory = "",
+    [string]$InstallDirectory = "",
+    [switch]$NoLaunch,
+    [switch]$Uninstall
+)
+
+$ErrorActionPreference = "Stop"
+
+# Windows PowerShell 5.1 (the default powershell.exe, as opposed to pwsh)
+# does not enable TLS 1.2 by default on many real-world Windows installs,
+# and GitHub's servers require it. Without this, Invoke-WebRequest below
+# fails the TLS handshake silently in a way that surfaces as a confusing
+# downstream error rather than a clear network message. .NET has shipped
+# Tls12 since .NET Framework 4.5, so this is safe on any Windows this
+# installer otherwise supports; the try/catch is only for the
+# unsupported-and-unreachable case of an even older .NET.
+try {
+    [Net.ServicePointManager]::SecurityProtocol = (
+        [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    )
+}
+catch {
+    Write-Warning "Could not enable TLS 1.2; the download below may fail on this system."
+}
+
+$Repository = "aniceswan/Pawdf"
+$Asset = "Pawdf-Windows-x86_64-Setup.exe"
+
+if ([string]::IsNullOrWhiteSpace($InstallDirectory)) {
+    $InstallDirectory = Join-Path $env:LOCALAPPDATA "Programs\Pawdf"
+}
+
+if ($Uninstall) {
+    $Uninstaller = Join-Path $InstallDirectory "unins000.exe"
+    if (Test-Path $Uninstaller) {
+        $Process = Start-Process -FilePath $Uninstaller `
+            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" `
+            -Wait -PassThru
+        if ($Process.ExitCode -ne 0) {
+            throw "Pawdf uninstaller exited with code $($Process.ExitCode)."
+        }
+    }
+    elseif (Test-Path $InstallDirectory) {
+        Remove-Item -Recurse -Force $InstallDirectory
+    }
+    Write-Host "Pawdf has been removed for the current user." -ForegroundColor Green
+    return
+}
+
+$Architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+if ($Architecture -eq "Arm64") {
+    Write-Host "Windows ARM64 detected; installing the x64 build through Windows emulation." -ForegroundColor Yellow
+}
+elseif ($Architecture -ne "X64") {
+    throw "Unsupported Windows architecture: $Architecture"
+}
+
+$Temporary = Join-Path ([IO.Path]::GetTempPath()) ("pawdf-install-" + [Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force -Path $Temporary | Out-Null
+
+try {
+    $AssetPath = Join-Path $Temporary $Asset
+    $SumsPath = Join-Path $Temporary "SHA256SUMS.txt"
+
+    if (-not [string]::IsNullOrWhiteSpace($SourceDirectory)) {
+        Copy-Item (Join-Path $SourceDirectory $Asset) $AssetPath
+        Copy-Item (Join-Path $SourceDirectory "SHA256SUMS.txt") $SumsPath
+    }
+    else {
+        if ($Version -eq "latest") {
+            $Base = "https://github.com/$Repository/releases/latest/download"
+        }
+        else {
+            $Base = "https://github.com/$Repository/releases/download/$Version"
+        }
+        Write-Host "Downloading $Asset..."
+        Invoke-WebRequest -UseBasicParsing -Uri "$Base/$Asset" -OutFile $AssetPath
+        Invoke-WebRequest -UseBasicParsing -Uri "$Base/SHA256SUMS.txt" -OutFile $SumsPath
+    }
+
+    $Expected = $null
+    foreach ($Line in Get-Content $SumsPath) {
+        if ($Line -match "^([0-9a-fA-F]{64})\s+\*?(.+)$") {
+            if ((Split-Path $Matches[2] -Leaf) -eq $Asset) {
+                $Expected = $Matches[1].ToLowerInvariant()
+                break
+            }
+        }
+    }
+    if (-not $Expected) { throw "$Asset is not listed in SHA256SUMS.txt." }
+
+    $Actual = (Get-FileHash -Algorithm SHA256 $AssetPath).Hash.ToLowerInvariant()
+    if ($Actual -ne $Expected) {
+        throw "SHA-256 verification failed. Expected $Expected, got $Actual."
+    }
+    Write-Host "SHA-256 verified." -ForegroundColor Green
+
+    $Arguments = @(
+        "/VERYSILENT",
+        "/SUPPRESSMSGBOXES",
+        "/NORESTART",
+        "/CURRENTUSER",
+        "/DIR=$InstallDirectory"
+    )
+    $Process = Start-Process -FilePath $AssetPath -ArgumentList $Arguments -Wait -PassThru
+    if ($Process.ExitCode -ne 0) {
+        throw "Pawdf installer exited with code $($Process.ExitCode)."
+    }
+
+    $Executable = Join-Path $InstallDirectory "pawdf.exe"
+    if (-not (Test-Path $Executable)) {
+        throw "The installer completed but $Executable is missing."
+    }
+
+    Write-Host ""
+    Write-Host "Pawdf is installed." -ForegroundColor Green
+    Write-Host "Executable: $Executable"
+    if (-not $NoLaunch) { Start-Process -FilePath $Executable }
+}
+finally {
+    Remove-Item -Recurse -Force $Temporary -ErrorAction SilentlyContinue
+}

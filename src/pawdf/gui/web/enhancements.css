@@ -1,0 +1,512 @@
+/* Pawdf UX upgrade. Loaded after styles.css. */
+
+/* One JavaScript clock rotates the ring and counter-rotates every tile.
+   Both transforms are written in the same frame, so the features keep moving
+   around the circle without ever becoming tilted or desynchronised. */
+#ring-nodes,
+.upright {
+  animation: none !important;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+#ring-pane {
+  padding-bottom: 84px;
+}
+
+.ring-title {
+  top: calc(100% + 46px);
+}
+
+/* Split by cut points. */
+.split-intro,
+.split-plan {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.split-intro,
+.split-plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.split-intro > div,
+.split-plan-head > div {
+  min-width: 0;
+}
+
+.split-intro strong,
+.split-plan-head strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12.5px;
+  font-variation-settings: "wght" 680;
+}
+
+.split-intro span,
+.split-plan-head span {
+  display: block;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.preview-grid.split-mode {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px 12px;
+  scroll-snap-type: x proximity;
+}
+
+.split-page-unit {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  scroll-snap-align: start;
+}
+
+.split-page-card {
+  width: 82px;
+  flex: 0 0 82px;
+}
+
+.split-page-media {
+  display: block;
+  min-height: 104px;
+}
+
+.split-page-media .pv-placeholder {
+  min-height: 104px;
+}
+
+.split-cutter {
+  position: relative;
+  width: 34px;
+  height: 92px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  margin: 0 2px;
+  color: var(--text-faint);
+  font-size: 17px;
+  transition: color 0.16s, transform 0.18s var(--ease-spring);
+}
+
+.split-cutter::before,
+.split-cutter::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  height: 29px;
+  border-left: 1px dashed var(--border-strong);
+}
+
+.split-cutter::before { top: 0; }
+.split-cutter::after { bottom: 0; }
+
+.split-cutter span {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-raised);
+}
+
+.split-cutter:hover,
+.split-cutter.active {
+  color: var(--accent);
+  transform: scale(1.08);
+}
+
+.split-cutter.active span {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.split-plan-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.split-output {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  cursor: pointer;
+}
+
+.split-output input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.split-output-text {
+  min-width: 0;
+}
+
+.split-output-text strong,
+.split-output-text span {
+  display: block;
+}
+
+.split-output-text strong {
+  font-size: 12px;
+}
+
+.split-output-text span {
+  margin-top: 2px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.split-output-badge {
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--text-dim);
+  background: var(--surface-hover);
+  font-size: 10px;
+  font-variation-settings: "wght" 700;
+}
+
+/* Arrange uses pointer events instead of HTML native drag. This prevents Qt's
+   external file-drop layer from showing "Drop to add" during page reordering. */
+.thumb {
+  touch-action: none;
+}
+
+body.arrange-dragging,
+body.arrange-dragging * {
+  cursor: grabbing !important;
+}
+
+body.arrange-dragging .drop-veil {
+  opacity: 0 !important;
+}
+
+/* Universal Save / Continue result shelf. */
+.operation-results {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.results-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent);
+  font-size: 10px;
+  font-variation-settings: "wght" 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.results-head h2 {
+  margin: 0;
+  font-family: "Pawdf Serif", Georgia, serif;
+  font-size: 20px;
+  font-variation-settings: "wght" 620;
+}
+
+.results-list {
+  display: grid;
+  gap: 10px;
+}
+
+.result-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.result-kind {
+  min-width: 42px;
+  padding: 6px 7px;
+  border-radius: 7px;
+  color: var(--text-dim);
+  background: var(--surface-hover);
+  text-align: center;
+  font-size: 9.5px;
+  font-variation-settings: "wght" 760;
+  letter-spacing: 0.04em;
+}
+
+.result-info {
+  min-width: 0;
+}
+
+.result-info strong,
+.result-info span {
+  display: block;
+}
+
+.result-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.result-info span {
+  margin-top: 3px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.result-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.result-save,
+.result-continue {
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  font-variation-settings: "wght" 650;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+
+.result-save:hover,
+.result-continue:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.result-continue {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.result-save:disabled,
+.result-continue:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.continue-menu {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  max-height: 230px;
+  overflow-y: auto;
+  padding-top: 4px;
+}
+
+.continue-tool {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  text-align: left;
+}
+
+.continue-tool:hover {
+  border-color: hsl(var(--node-hue) 55% 50%);
+  background: var(--surface-hover);
+}
+
+.continue-tool svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  fill: none;
+  stroke: hsl(var(--node-hue) 60% 55%);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.continue-tool span {
+  min-width: 0;
+}
+
+.continue-tool strong,
+.continue-tool small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.continue-tool strong {
+  font-size: 11.5px;
+}
+
+.continue-tool small,
+.continue-empty {
+  margin-top: 2px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+@media (max-height: 720px) {
+  #ring-pane { padding-bottom: 68px; }
+  .ring-title { top: calc(100% + 36px); }
+}
+
+/* PAWDF_UX_HARDENING_V3 */
+
+.continue-menu[hidden],
+.operation-results[hidden] {
+  display: none !important;
+}
+
+.split-cutter:focus-visible,
+.result-save:focus-visible,
+.result-continue:focus-visible,
+.continue-tool:focus-visible,
+.split-output:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#split-clear-cuts:disabled,
+#split-select-all:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.thumb.dragging {
+  opacity: 0.58;
+  transform: scale(0.98);
+}
+
+#org-grid .thumb.drop-before::before,
+#org-grid .thumb.drop-after::after {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .result-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .result-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .continue-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .split-intro,
+  .split-plan-head {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operation-results,
+  .result-card,
+  .split-cutter,
+  .thumb {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* PAWDF_RELIABILITY_V4: complete form controls and warning states. */
+#form-fields .field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--bg-raised);
+}
+
+.form-field-unsupported {
+  padding: 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* PAWDF_PRODUCT_HARDENING_V1 */
+
+.setting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+:where(button, input, select, [tabindex]):focus-visible {
+  outline: 3px solid hsl(var(--accent-hue, 205) 90% 50% / 0.75);
+  outline-offset: 3px;
+}
+
+[aria-busy="true"] {
+  cursor: progress;
+}
+
+body.processing .brand-version::after {
+  content: " · working";
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  #ring,
+  #ring-nodes,
+  .slot,
+  .upright,
+  .aurora .blob {
+    animation: none !important;
+  }
+}

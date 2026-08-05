@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<title>Pawdf</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="enhancements.css" />
+</head>
+<body class="empty">
+
+<div class="aurora" aria-hidden="true">
+  <span class="blob blob-a"></span>
+  <span class="blob blob-b"></span>
+  <span class="grain"></span>
+</div>
+
+<header id="topbar">
+  <div class="brand">
+    <img src="img/logo.png" alt="" width="26" height="26" />
+    <span class="brand-name">Pawdf</span>
+    <span class="brand-version" id="app-version"></span>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="theme-toggle" title="Switch theme" aria-label="Switch theme">
+      <svg viewBox="0 0 24 24" class="i-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.6M12 18.8v2.6M4.36 4.36l1.84 1.84M17.8 17.8l1.84 1.84M2.6 12h2.6M18.8 12h2.6M4.36 19.64l1.84-1.84M17.8 6.2l1.84-1.84"/></svg>
+      <svg viewBox="0 0 24 24" class="i-moon"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>
+    </button>
+    <button class="icon-btn" id="open-settings" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a1.94 1.94 0 1 1-2.75 2.75l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a1.94 1.94 0 1 1-3.88 0v-.1a1.6 1.6 0 0 0-1.05-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a1.94 1.94 0 1 1-2.75-2.75l.06-.06a1.6 1.6 0 0 0 .32-1.77 1.6 1.6 0 0 0-1.47-1H3a1.94 1.94 0 1 1 0-3.88h.1A1.6 1.6 0 0 0 4.6 9.3a1.6 1.6 0 0 0-.32-1.77l-.06-.06a1.94 1.94 0 1 1 6.97 4.72l.06.06a1.6 1.6 0 0 0 1.77.32H8.9a1.6 1.6 0 0 0 1-1.47V3a1.94 1.94 0 0 1 3.88 0v.1a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a1.94 1.94 0 1 1 2.75 2.75l-.06.06a1.6 1.6 0 0 0-.32 1.77V9a1.6 1.6 0 0 0 1.47 1H21a1.94 1.94 0 1 1 0 3.88h-.1a1.6 1.6 0 0 0-1.47 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="workspace">
+
+  <!-- ============ left: what this is, and what's loaded ============ -->
+  <section id="hero">
+    <p class="hero-eyebrow">Offline PDF toolkit</p>
+    <h1 class="hero-title">Every PDF job,<br />done on your&nbsp;desk.</h1>
+    <p class="hero-sub">
+      Split, merge, reorder, compress and convert without uploading a single
+      page. Nothing leaves this machine.
+    </p>
+
+    <div class="hero-actions">
+      <button class="hero-add" id="hero-add">Add files</button>
+      <button class="hero-search" id="hero-search">
+        Find a tool <kbd>Ctrl</kbd><kbd>K</kbd>
+      </button>
+    </div>
+
+    <div id="tray" class="tray">
+      <div class="tray-head">
+        <span class="tray-count"></span>
+        <button class="link-btn" id="tray-add">Add more</button>
+        <button class="link-btn danger" id="tray-clear">Clear</button>
+      </div>
+      <div class="tray-items" id="tray-items"></div>
+    </div>
+  </section>
+
+  <!-- ============ right: the tool ring ============ -->
+  <section id="ring-pane">
+    <div id="ring" class="ring">
+      <div id="ring-nodes"></div>
+
+      <button id="hub" class="hub" aria-label="Add files">
+        <svg viewBox="0 0 24 24" class="hub-glyph hub-plus"><path d="M12 5v14M5 12h14"/></svg>
+        <svg viewBox="0 0 24 24" class="hub-glyph hub-back"><path d="M15 5l-7 7 7 7"/></svg>
+        <span class="hub-caption" id="hub-caption">Add files</span>
+      </button>
+
+      <div class="ring-title" id="ring-title"></div>
+    </div>
+  </section>
+
+  <!-- ============ right: the selected tool ============ -->
+  <aside id="detail" class="detail" aria-live="polite">
+    <div class="detail-inner">
+      <header class="detail-head">
+        <button class="back-btn" id="detail-back" aria-label="Back">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="detail-heading">
+          <h1 id="detail-title"></h1>
+          <p id="detail-tagline"></p>
+        </div>
+      </header>
+
+      <div id="detail-files" class="detail-files"></div>
+
+      <section id="preview" class="preview" hidden>
+        <div class="preview-head">
+          <span class="preview-count" id="preview-count"></span>
+          <span class="preview-hint" id="preview-hint"></span>
+        </div>
+        <div class="preview-grid" id="preview-grid"></div>
+      </section>
+
+      <div class="detail-body">
+
+        <div class="panel" data-panel="split">
+          <label class="field">
+            <span class="field-label">Page ranges</span>
+            <input type="text" id="split-ranges" placeholder="1-3, 4, 5-9" />
+            <span class="field-hint">One output file per range. Pages are 1-indexed.</span>
+          </label>
+          <button class="run-btn" data-run="split">Split PDF</button>
+        </div>
+
+        <div class="panel" data-panel="merge">
+          <p class="notice">Files are merged top to bottom. Reorder them in the list on the left.</p>
+          <button class="run-btn" data-run="merge">Merge PDFs</button>
+        </div>
+
+        <div class="panel" data-panel="organize">
+          <div class="org-toolbar" hidden>
+            <span class="org-count"></span>
+            <div class="org-actions">
+              <button class="ghost-btn" id="org-move-l" title="Move earlier">&#8592; Move</button>
+              <button class="ghost-btn" id="org-move-r" title="Move later">Move &#8594;</button>
+              <button class="ghost-btn" id="org-rotate-l">Rotate left</button>
+              <button class="ghost-btn" id="org-rotate-r">Rotate right</button>
+              <button class="ghost-btn danger" id="org-delete">Delete</button>
+            </div>
+          </div>
+          <div class="thumbgrid" id="org-grid"></div>
+          <button class="run-btn" data-run="organize" hidden>Save changes</button>
+        </div>
+
+        <div class="panel" data-panel="compress">
+          <label class="field">
+            <span class="field-label">Quality</span>
+            <select id="compress-preset">
+              <option value="screen">Screen - smallest file</option>
+              <option value="ebook" selected>Ebook - balanced</option>
+              <option value="printer">Printer - high quality</option>
+              <option value="prepress">Prepress - largest</option>
+            </select>
+            <span class="field-hint" id="gs-note">Checking Ghostscript…</span>
+          </label>
+          <button class="run-btn" data-run="compress">Compress PDF</button>
+        </div>
+
+        <div class="panel" data-panel="rasterize">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Format</span>
+              <select id="raster-format">
+                <option value="png">PNG</option>
+                <option value="jpg">JPG</option>
+                <option value="webp">WebP</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Resolution</span>
+              <select id="raster-dpi">
+                <option value="72">72 dpi - screen</option>
+                <option value="150">150 dpi</option>
+                <option value="200" selected>200 dpi - default</option>
+                <option value="300">300 dpi - print</option>
+                <option value="600">600 dpi - archival</option>
+              </select>
+            </label>
+          </div>
+          <button class="run-btn" data-run="rasterize">Export images</button>
+        </div>
+
+        <div class="panel" data-panel="imagepdf">
+          <label class="field">
+            <span class="field-label">Page size</span>
+            <select id="imagepdf-fit">
+              <option value="image" selected>Match each image</option>
+              <option value="a4">A4</option>
+              <option value="letter">US Letter</option>
+            </select>
+            <span class="field-hint">JPEGs are embedded without re-encoding, so nothing is degraded.</span>
+          </label>
+          <button class="run-btn" data-run="imagepdf">Build PDF</button>
+        </div>
+
+        <div class="panel" data-panel="pdf_to_docx">
+          <p class="notice">A PDF stores glyphs, not paragraphs, so structure is reconstructed by inference. Typical documents come out well; tables and multi-column layouts do not.</p>
+          <button class="run-btn" data-run="pdf_to_docx">Convert to Word</button>
+        </div>
+
+        <div class="panel" data-panel="docx_to_pdf">
+          <p class="notice">Converted by Pawdf itself - no Word and no LibreOffice involved. Footnotes, headers and footers are not carried over.</p>
+          <button class="run-btn" data-run="docx_to_pdf">Convert to PDF</button>
+        </div>
+
+        <div class="panel" data-panel="rotate">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Turn by</span>
+              <select id="rotate-degrees">
+                <option value="90" selected>90&deg; clockwise</option>
+                <option value="180">180&deg;</option>
+                <option value="270">90&deg; anticlockwise</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Pages</span>
+              <input type="text" id="rotate-pages" placeholder="All pages" />
+            </label>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="rotate-absolute" />
+            <span>Set the rotation instead of adding to it</span>
+          </label>
+          <button class="run-btn" data-run="rotate">Rotate PDF</button>
+        </div>
+
+        <div class="panel" data-panel="crop">
+          <p class="notice">Cropping hides content, it does not remove it. Anything outside the new edge is still in the file and comes back if the crop is undone.</p>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Top</span>
+              <input type="text" id="crop-top" value="0" />
+            </label>
+            <label class="field">
+              <span class="field-label">Bottom</span>
+              <input type="text" id="crop-bottom" value="0" />
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Left</span>
+              <input type="text" id="crop-left" value="0" />
+            </label>
+            <label class="field">
+              <span class="field-label">Right</span>
+              <input type="text" id="crop-right" value="0" />
+            </label>
+          </div>
+          <label class="field">
+            <span class="field-label">Pages</span>
+            <input type="text" id="crop-pages" placeholder="All pages" />
+            <span class="field-hint">Measured in points, 72 to the inch. 36 is half an inch.</span>
+          </label>
+          <button class="run-btn" data-run="crop">Crop PDF</button>
+        </div>
+
+        <div class="panel" data-panel="repair">
+          <p class="notice">Rebuilds a PDF whose structure is damaged, which is what a failed download or an interrupted save leaves behind. Content that was genuinely lost cannot be brought back.</p>
+          <button class="run-btn" data-run="repair">Repair PDF</button>
+        </div>
+
+        <div class="panel" data-panel="protect">
+          <label class="field">
+            <span class="field-label">Password</span>
+            <input type="password" id="protect-password" placeholder="Needed to open the file" />
+            <span class="field-hint">Encrypted with AES-256. Without this password the contents cannot be read, by this or any other tool.</span>
+          </label>
+          <div class="field">
+            <span class="field-label">Also allow</span>
+            <label class="check"><input type="checkbox" id="protect-print" checked /><span>Printing</span></label>
+            <label class="check"><input type="checkbox" id="protect-modify" checked /><span>Editing</span></label>
+            <label class="check"><input type="checkbox" id="protect-extract" checked /><span>Copying text</span></label>
+            <span class="field-hint">These are requests, not locks. Compliant readers obey them; others ignore them. Only the password is real protection.</span>
+          </div>
+          <button class="run-btn" data-run="protect">Protect PDF</button>
+        </div>
+
+        <div class="panel" data-panel="unlock">
+          <label class="field">
+            <span class="field-label">Password</span>
+            <input type="password" id="unlock-password" placeholder="The file's current password" />
+            <span class="field-hint" id="unlock-note">Removes the password so the file stops asking. You have to know it: this does not break encryption.</span>
+          </label>
+          <button class="run-btn" data-run="unlock">Remove password</button>
+        </div>
+
+        <div class="panel" data-panel="watermark">
+          <label class="field">
+            <span class="field-label">Text</span>
+            <input type="text" id="wm-text" placeholder="CONFIDENTIAL" />
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Position</span>
+              <select id="wm-position">
+              <option value="top-left">Top left</option>
+              <option value="top-center">Top centre</option>
+              <option value="top-right">Top right</option>
+              <option value="middle-left">Middle left</option>
+              <option value="center" selected>Centre</option>
+              <option value="middle-right">Middle right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="bottom-center">Bottom centre</option>
+              <option value="bottom-right">Bottom right</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Angle</span>
+              <select id="wm-rotation">
+                <option value="45" selected>Diagonal</option>
+                <option value="0">Horizontal</option>
+                <option value="90">Vertical</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Opacity</span>
+              <select id="wm-opacity">
+                <option value="0.08">Very faint</option>
+                <option value="0.18" selected>Faint</option>
+                <option value="0.35">Medium</option>
+                <option value="0.6">Strong</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Size</span>
+              <select id="wm-size">
+                <option value="28">Small</option>
+                <option value="52" selected>Large</option>
+                <option value="80">Huge</option>
+              </select>
+            </label>
+          </div>
+          <p class="notice">A watermark is drawn over the page. The content underneath is untouched and reappears if the mark is removed, so this labels a document rather than hiding anything in it.</p>
+          <button class="run-btn" data-run="watermark">Add watermark</button>
+        </div>
+
+        <div class="panel" data-panel="sign">
+          <div class="dropzone" id="sign-image-zone">
+            <div class="dz-icon"><svg viewBox="0 0 24 24"><path d="M3 17c3-6 6 3 9-3s6 1 9-4"/><path d="M4 21h16"/></svg></div>
+            <div class="dz-title" id="sign-image-name">Choose a signature image</div>
+            <div class="dz-sub">PNG with transparency works best</div>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Position</span>
+              <select id="sign-position">
+              <option value="top-left">Top left</option>
+              <option value="top-center">Top centre</option>
+              <option value="top-right">Top right</option>
+              <option value="middle-left">Middle left</option>
+              <option value="center">Centre</option>
+              <option value="middle-right">Middle right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="bottom-center">Bottom centre</option>
+              <option value="bottom-right" selected>Bottom right</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Width</span>
+              <select id="sign-width">
+                <option value="90">Small</option>
+                <option value="140" selected>Medium</option>
+                <option value="220">Large</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span class="field-label">Pages</span>
+            <input type="text" id="sign-pages" placeholder="All pages" />
+          </label>
+          <p class="notice">This places a picture on the page. It is a visual mark, not a cryptographic signature: it does not prove who signed or detect later edits.</p>
+          <button class="run-btn" data-run="sign">Add signature</button>
+        </div>
+
+        <div class="panel" data-panel="pagenumbers">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Position</span>
+              <select id="pn-position">
+              <option value="top-left">Top left</option>
+              <option value="top-center">Top centre</option>
+              <option value="top-right">Top right</option>
+              <option value="middle-left">Middle left</option>
+              <option value="center">Centre</option>
+              <option value="middle-right">Middle right</option>
+              <option value="bottom-left">Bottom left</option>
+              <option value="bottom-center" selected>Bottom centre</option>
+              <option value="bottom-right">Bottom right</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Start at</span>
+              <input type="text" id="pn-start" value="1" />
+            </label>
+          </div>
+          <label class="field">
+            <span class="field-label">Format</span>
+            <select id="pn-template">
+              <option value="{n}" selected>1</option>
+              <option value="- {n} -">- 1 -</option>
+              <option value="Page {n}">Page 1</option>
+              <option value="Page {n} of {total}">Page 1 of 9</option>
+            </select>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="pn-skip-first" />
+            <span>Skip the first page</span>
+          </label>
+          <button class="run-btn" data-run="pagenumbers">Add page numbers</button>
+        </div>
+
+        <div class="panel" data-panel="pdf_to_markdown">
+          <label class="check">
+            <input type="checkbox" id="md-separators" />
+            <span>Put a rule between pages</span>
+          </label>
+          <p class="notice">Headings, bold, italic and lists are reconstructed from font sizes and line starts. Images are written to a folder beside the .md file and linked relatively. Tables and multi-column layouts are not attempted.</p>
+          <button class="run-btn" data-run="pdf_to_markdown">Convert to Markdown</button>
+        </div>
+
+        <div class="panel" data-panel="xlsx_to_pdf">
+          <p class="notice">One section per visible sheet. Calculated cells show their last saved value, so a workbook whose formulas were never calculated will have gaps. Charts, images and cell colours are not carried over.</p>
+          <button class="run-btn" data-run="xlsx_to_pdf">Convert to PDF</button>
+        </div>
+
+        <div class="panel" data-panel="pptx_to_pdf">
+          <p class="notice">One slide per page, at the deck's own shape. Text and pictures are placed where the file says; theme styling, animations, charts and SmartArt are not reproduced.</p>
+          <button class="run-btn" data-run="pptx_to_pdf">Convert to PDF</button>
+        </div>
+
+        <div class="panel" data-panel="ocr">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Language</span>
+              <select id="ocr-language"><option value="eng">English</option></select>
+            </label>
+            <label class="field">
+              <span class="field-label">Detail</span>
+              <select id="ocr-dpi">
+                <option value="200">Faster</option>
+                <option value="300" selected>Standard</option>
+                <option value="450">Careful</option>
+              </select>
+            </label>
+          </div>
+          <p class="notice" id="ocr-note">Checking for Tesseract...</p>
+          <button class="run-btn" data-run="ocr">Make searchable</button>
+        </div>
+
+        <div class="panel" data-panel="forms">
+          <div id="form-fields" class="form-fields"></div>
+          <label class="check">
+            <input type="checkbox" id="form-flatten" />
+            <span>Lock the values in, so they can't be edited again</span>
+          </label>
+          <button class="run-btn" data-run="forms">Fill form</button>
+        </div>
+
+        <div class="panel" data-panel="annotate">
+          <label class="field">
+            <span class="field-label">Note</span>
+            <input type="text" id="ann-text" placeholder="Reviewed 4 August" />
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Page</span>
+              <input type="text" id="ann-page" value="1" />
+            </label>
+            <label class="field">
+              <span class="field-label">Size</span>
+              <select id="ann-size">
+                <option value="10">Small</option>
+                <option value="12" selected>Normal</option>
+                <option value="18">Large</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">From the left</span>
+              <input type="text" id="ann-x" value="72" />
+            </label>
+            <label class="field">
+              <span class="field-label">From the bottom</span>
+              <input type="text" id="ann-y" value="720" />
+            </label>
+          </div>
+          <p class="notice">Measured in points from the bottom-left corner, 72 to the inch. This adds a layer on top of the page; text already in the document cannot be edited.</p>
+          <button class="run-btn" data-run="annotate">Add note</button>
+        </div>
+
+        <div class="panel" data-panel="settings">
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Ghostscript</div>
+              <div class="setting-desc" id="gs-status">Checking…</div>
+            </div>
+            <button class="ghost-btn" id="gs-action">Check again</button>
+          </div>
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Tesseract</div>
+              <div class="setting-desc" id="ocr-status">Checking...</div>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Appearance</div>
+              <div class="setting-desc">Dark and light both ship; the app never asks the internet which to use.</div>
+            </div>
+            <button class="ghost-btn" id="gs-theme">Switch theme</button>
+          </div>
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Privacy</div>
+              <div class="setting-desc">Pawdf makes no network request except when you press "Set up Ghostscript". Nothing is uploaded, ever.</div>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Session recovery</div>
+              <div class="setting-desc">Pawdf remembers only the local file paths in the tray. Passwords, form values, signatures, and document contents are never stored.</div>
+            </div>
+            <button class="ghost-btn" id="session-forget">Forget files</button>
+          </div>
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Background work</div>
+              <div class="setting-desc" id="job-status" aria-live="polite">Checking...</div>
+            </div>
+          </div>
+          <div class="setting">
+            <div class="setting-text">
+              <div class="setting-title">Diagnostics</div>
+              <div class="setting-desc" id="diagnostics-status">Checking...</div>
+            </div>
+            <div class="setting-actions">
+              <button class="ghost-btn" id="diagnostics-export">Export</button>
+              <button class="ghost-btn danger" id="diagnostics-clear">Clear logs</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="drop-veil" class="drop-veil" aria-hidden="true">
+  <div class="veil-inner">
+    <div class="veil-paw"><img src="img/logo.png" alt="" width="60" height="60" /></div>
+    <div class="veil-text">Drop to add</div>
+  </div>
+</div>
+
+<div id="search" class="search" hidden>
+  <div class="search-panel">
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" class="search-glass"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input type="text" id="search-input" placeholder="Search tools" autocomplete="off" spellcheck="false" />
+      <button class="search-close" id="search-close" aria-label="Close search">&#10005;</button>
+    </div>
+    <div class="search-results" id="search-results"></div>
+  </div>
+</div>
+
+<div id="lightbox" class="lightbox" hidden>
+  <button class="lb-close" id="lightbox-close" aria-label="Close preview">&#10005;</button>
+  <button class="lb-nav lb-prev" id="lightbox-prev" aria-label="Previous page">&#8249;</button>
+  <figure class="lb-figure">
+    <img id="lightbox-img" alt="" />
+    <figcaption id="lightbox-label"></figcaption>
+  </figure>
+  <button class="lb-nav lb-next" id="lightbox-next" aria-label="Next page">&#8250;</button>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script src="app.js"></script>
+<script src="enhancements.js"></script>
+</body>
+</html>

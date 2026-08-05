@@ -1,0 +1,20 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Pawdf
+GenericName=PDF Toolkit
+Comment=Split, merge, organize, compress and convert PDFs - fully offline
+Exec=__INSTALL_DIR__/pawdf
+TryExec=__INSTALL_DIR__/pawdf
+Icon=pawdf
+Terminal=false
+# Exactly one main category, or the entry can be listed twice in the menu.
+Categories=Office;
+Keywords=pdf;split;merge;compress;convert;word;docx;image;organize;
+StartupNotify=true
+
+# Must match the app_id Qt reports, or the shell shows a running window as a
+# second, separate icon instead of lighting up the one you pinned. Qt takes
+# the app_id from QGuiApplication::setDesktopFileName(), which gui/app.py sets
+# to "pawdf" - the basename of this file. Keep all three in step.
+StartupWMClass=pawdf

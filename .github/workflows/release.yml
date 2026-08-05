@@ -1,0 +1,335 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # linux-aarch64 is deliberately absent: PySide6 6.11.1's Qt
+          # WebEngine expects libwebp.so.6, an ABI Ubuntu 22.04's (jammy)
+          # main archive no longer carries for aarch64 (only libwebp7,
+          # a newer incompatible ABI) - confirmed by six real hosted build
+          # attempts, three of which fixed genuine bugs (QtQuickWidgets
+          # over-pruning, the audit script's stale deny-list, missing
+          # libevent/libopus). This is a real upstream packaging gap, not a
+          # Pawdf defect, and is tracked separately rather than blocking the
+          # four targets that build and launch correctly.
+          - runner: ubuntu-22.04
+            target: linux-x86_64
+            platform: Linux
+            arch: x86_64
+            artifact: Pawdf-Linux-x86_64.AppImage
+            installed_budget: 700
+            artifact_budget: 220
+          - runner: windows-2025
+            target: windows-x86_64
+            platform: Windows
+            arch: x86_64
+            artifact: Pawdf-Windows-x86_64-Setup.exe
+            installed_budget: 700
+            artifact_budget: 220
+          - runner: macos-15
+            target: macos-arm64
+            platform: macOS
+            arch: arm64
+            artifact: Pawdf-macOS-arm64.dmg
+            installed_budget: 750
+            artifact_budget: 260
+          - runner: macos-15-intel
+            target: macos-x86_64
+            platform: macOS
+            arch: x86_64
+            artifact: Pawdf-macOS-x86_64.dmg
+            installed_budget: 750
+            artifact_budget: 260
+
+    env:
+      PYTEST_QT_API: pyside6
+      QT_OPENGL: software
+      QT_QUICK_BACKEND: software
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      QTWEBENGINE_CHROMIUM_FLAGS: >-
+        --no-sandbox
+        --disable-gpu
+        --disable-gpu-compositing
+        --disable-features=Vulkan
+        --disable-dev-shm-usage
+      WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Linux Qt and WebEngine runtime
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth \
+            libegl1 libgl1 libgl1-mesa-dri libglx-mesa0 libopengl0 \
+            libgbm1 libdrm2 libdbus-1-3 libfontconfig1 libfreetype6 \
+            libglib2.0-0 libnss3 libnspr4 libsm6 libice6 \
+            libevent-2.1-7 libopus0 libwebp7 libvpx7 \
+            libx11-6 libx11-xcb1 libxext6 libxfixes3 libxi6 \
+            libxrender1 libxrandr2 libxcursor1 libxcomposite1 \
+            libxdamage1 libxtst6 libxss1 libxshmfence1 \
+            libxkbfile1 libxkbcommon0 libxkbcommon-x11-0 \
+            libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-shm0 \
+            libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xkb1 libxcb-dri2-0 \
+            libxcb-dri3-0 libxcb-glx0 libxcb-present0
+
+      - name: Install clean release environment
+        if: matrix.target != 'linux-aarch64'
+        run: >
+          python -m pip install
+          -e ".[release]"
+          -r requirements/qt-ci.txt
+
+      - name: Install clean release environment (aarch64)
+        # requirements/qt-ci.txt pins PySide6==6.11.1 for CI reproducibility
+        # on every other target, but PySide6's PyPI wheels for Linux aarch64
+        # lag behind the other platforms - as of this workflow only 6.8.0.2
+        # is published there, so the pin makes this one target
+        # uninstallable with no upstream fix available. Let pip resolve
+        # PySide6 to whatever aarch64 build actually exists instead, via the
+        # `pawdf[gui]` extra's unpinned `PySide6>=6.7` floor.
+        if: matrix.target == 'linux-aarch64'
+        run: python -m pip install -e ".[release]"
+
+      - name: Build PyInstaller runtime
+        run: python scripts/build_pyinstaller.py
+
+      - name: Smoke raw Linux runtime
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: xcb
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/pawdf-release-runtime"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          xvfb-run --auto-servernum \
+            --server-args="-screen 0 1440x900x24 -nolisten tcp" \
+            python scripts/smoke_packaged.py --dist dist
+
+      - name: Smoke raw Windows and macOS runtime
+        if: runner.os != 'Linux'
+        run: python scripts/smoke_packaged.py --dist dist
+
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_BASE64 != ''
+        shell: bash
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/pawdf-signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/pawdf-signing.keychain-db"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p temporary "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p temporary "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k temporary "$KEYCHAIN_PATH"
+          echo "PAWDF_SIGNING_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Sign macOS app
+        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_BASE64 != ''
+        shell: bash
+        run: |
+          codesign --force --deep --options runtime --timestamp \
+            --keychain "$PAWDF_SIGNING_KEYCHAIN" \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            dist/pawdf.app
+          codesign --verify --deep --strict --verbose=2 dist/pawdf.app
+
+      - name: Package Linux AppImage
+        if: runner.os == 'Linux'
+        run: python scripts/package_linux_appimage.py --dist dist
+
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $Version = python -c "from pawdf import __version__; print(__version__)"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DAppVersion=$Version" packaging\windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Sign Windows installer
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_BASE64 != ''
+        shell: pwsh
+        run: |
+          $Pfx = Join-Path $env:RUNNER_TEMP "pawdf-signing.pfx"
+          [IO.File]::WriteAllBytes($Pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          $SignTool = (
+            Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          ).FullName
+          & $SignTool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
+            /f $Pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD `
+            dist\Pawdf-Windows-x86_64-Setup.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package macOS DMG
+        if: runner.os == 'macOS'
+        run: python scripts/package_macos_dmg.py --dist dist
+
+      - name: Notarize and staple macOS DMG
+        if: >-
+          runner.os == 'macOS' &&
+          env.APPLE_CERTIFICATE_BASE64 != '' &&
+          env.APPLE_ID != '' &&
+          env.APPLE_TEAM_ID != '' &&
+          env.APPLE_APP_PASSWORD != ''
+        shell: bash
+        run: |
+          xcrun notarytool submit "dist/${{ matrix.artifact }}" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple "dist/${{ matrix.artifact }}"
+          xcrun stapler validate "dist/${{ matrix.artifact }}"
+
+      - name: Generate checksums, manifest, and SBOM
+        run: python scripts/release_manifest.py --root dist
+
+      - name: Audit runtime size and contents
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            BUNDLE_ROOT="dist/pawdf.app"
+          else
+            BUNDLE_ROOT="dist/pawdf"
+          fi
+          python scripts/audit_bundle.py \
+            --bundle-root "$BUNDLE_ROOT" \
+            --artifact "dist/${{ matrix.artifact }}" \
+            --platform "${{ matrix.platform }}" \
+            --arch "${{ matrix.arch }}" \
+            --installed-budget-mb "${{ matrix.installed_budget }}" \
+            --artifact-budget-mb "${{ matrix.artifact_budget }}" \
+            --report "dist/release-size-${{ matrix.target }}.json"
+
+      - name: Fresh-install Linux release
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: xcb
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          PAWDF_RELEASE_DIR: ${{ github.workspace }}/dist
+          PAWDF_INSTALL_ROOT: ${{ runner.temp }}/pawdf-installed
+          PAWDF_BIN_DIR: ${{ runner.temp }}/pawdf-bin
+          PAWDF_APPLICATIONS_DIR: ${{ runner.temp }}/applications
+        run: |
+          bash install.sh --no-launch
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/pawdf-installed-runtime"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          xvfb-run --auto-servernum \
+            --server-args="-screen 0 1440x900x24 -nolisten tcp" \
+            python scripts/verify_installed.py \
+              --binary "$PAWDF_INSTALL_ROOT/Pawdf.AppImage" \
+              --report "dist/installed-smoke-${{ matrix.target }}.json"
+
+      - name: Fresh-install Windows release
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\install.ps1 `
+            -SourceDirectory (Resolve-Path dist) `
+            -InstallDirectory "$env:RUNNER_TEMP\Pawdf" `
+            -NoLaunch
+          python scripts\verify_installed.py `
+            --binary "$env:RUNNER_TEMP\Pawdf\pawdf.exe" `
+            --report "dist\installed-smoke-${{ matrix.target }}.json"
+
+      - name: Fresh-install macOS release
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          PAWDF_RELEASE_DIR: ${{ github.workspace }}/dist
+          PAWDF_INSTALL_ROOT: ${{ runner.temp }}/Applications
+        run: |
+          bash install.sh --no-launch
+          python scripts/verify_installed.py \
+            --binary "$PAWDF_INSTALL_ROOT/Pawdf.app/Contents/MacOS/pawdf" \
+            --report "dist/installed-smoke-${{ matrix.target }}.json"
+
+      - name: Upload release target
+        uses: actions/upload-artifact@v6
+        with:
+          name: pawdf-${{ matrix.target }}
+          path: |
+            dist/${{ matrix.artifact }}
+            dist/SHA256SUMS.txt
+            dist/release-manifest.json
+            dist/SBOM.cdx.json
+            dist/release-size-${{ matrix.target }}.json
+            dist/installed-smoke-${{ matrix.target }}.json
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Generate combined release metadata
+        run: |
+          python -m pip install -e . --no-deps
+          python scripts/release_manifest.py --root release-assets
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            release-assets/Pawdf-Linux-x86_64.AppImage
+            release-assets/Pawdf-Windows-x86_64-Setup.exe
+            release-assets/Pawdf-macOS-arm64.dmg
+            release-assets/Pawdf-macOS-x86_64.dmg
+            release-assets/SHA256SUMS.txt
+            release-assets/release-manifest.json
+            release-assets/SBOM.cdx.json
+            release-assets/release-size-*.json
+            release-assets/installed-smoke-*.json

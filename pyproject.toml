@@ -1,0 +1,107 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pawdf"
+version = "0.2.1"
+description = "Offline, open-source desktop toolkit for PDF operations: split, merge, arrange, compress, and convert."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Pawdf contributors" }]
+keywords = ["pdf", "desktop", "offline", "split", "merge", "compress", "convert"]
+classifiers = [
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Office Suites",
+]
+
+# Everything core/ needs, and deliberately nothing more. Qt lives in the
+# `gui` extra below, not here, so `pip install pawdf` gives you every PDF
+# operation with no LGPL dependency anywhere in the tree -- which is what
+# makes lifting a feature into a closed-source product a clean story.
+#
+# For the desktop app, install `pawdf[gui]`. For a single operation, the
+# matching per-feature extra: `pip install pawdf[split]` pulls in pikepdf and
+# nothing else. See each core/<feature>/README.md.
+dependencies = [
+    "pikepdf>=9.0",
+    "pypdfium2>=4.30",
+    "python-docx>=1.1",
+    "reportlab>=4.2",
+    "Pillow>=10.4",
+    "platformdirs>=4.2",
+    "openpyxl>=3.1",
+    "python-pptx>=1.0",
+]
+
+[project.optional-dependencies]
+# The desktop application. PySide6 is LGPL-3.0 -- see THIRD-PARTY-NOTICES.md.
+gui = ["PySide6>=6.7"]
+# --- one group per core/ feature, so a single tool can be installed alone ---
+split = ["pikepdf>=9.0"]
+merge = ["pikepdf>=9.0"]
+organize = ["pikepdf>=9.0"]
+rotate = ["pikepdf>=9.0"]
+crop = ["pikepdf>=9.0"]
+repair = ["pikepdf>=9.0"]
+ocr = ["pypdfium2>=4.30", "Pillow>=10.4", "pikepdf>=9.0"]
+protect = ["pikepdf>=9.0"]
+stamp = ["pikepdf>=9.0", "reportlab>=4.2", "Pillow>=10.4"]
+forms = ["pikepdf>=9.0"]
+annotate = ["pikepdf>=9.0", "reportlab>=4.2"]
+compress = ["pikepdf>=9.0", "Pillow>=10.4", "platformdirs>=4.2"]
+rasterize = ["pypdfium2>=4.30", "Pillow>=10.4", "pikepdf>=9.0"]
+imagepdf = ["pikepdf>=9.0", "Pillow>=10.4"]
+pdf_to_docx = ["pypdfium2>=4.30", "python-docx>=1.1"]
+pdf_to_markdown = ["pypdfium2>=4.30", "pikepdf>=9.0"]
+docx_to_pdf = ["python-docx>=1.1", "reportlab>=4.2", "Pillow>=10.4"]
+xlsx_to_pdf = ["openpyxl>=3.1", "reportlab>=4.2"]
+pptx_to_pdf = ["python-pptx>=1.0", "reportlab>=4.2", "Pillow>=10.4"]
+
+# Every core/ feature and no GUI -- which is exactly the base dependency set,
+# named explicitly so `pip install pawdf[core]` reads as a deliberate choice.
+core = [
+    "pikepdf>=9.0",
+    "pypdfium2>=4.30",
+    "python-docx>=1.1",
+    "reportlab>=4.2",
+    "Pillow>=10.4",
+    "platformdirs>=4.2",
+    "openpyxl>=3.1",
+    "python-pptx>=1.0",
+]
+
+dev = [
+    "pawdf[gui]",
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "pyinstaller>=6.10",
+]
+
+release = [
+    "pawdf[gui]",
+    "pyinstaller>=6.21,<7",
+]
+
+[project.scripts]
+pawdf = "pawdf.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pawdf"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

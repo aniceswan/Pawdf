@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reference copy of the keys PyInstaller's `BUNDLE(..., info_plist={...})`
+  call in packaging/pyinstaller/pawdf.spec sets when building on macOS.
+  This file itself isn't read by the build; keep the two in sync by hand
+  if either changes. NOT verified on an actual Mac (this repo was
+  developed on Linux). The app is unsigned/non-notarized, so first launch
+  requires a right-click -> Open to bypass Gatekeeper. See docs for
+  details before relying on this for a release.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Pawdf</string>
+    <key>CFBundleDisplayName</key>
+    <string>Pawdf</string>
+    <key>CFBundleIdentifier</key>
+    <string>org.pawdf.app</string>
+    <key>CFBundleVersion</key>
+    <string>0.2.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.2.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>pawdf</string>
+    <key>CFBundleIconFile</key>
+    <string>icon.icns</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Pawdf contributors</string>
+</dict>
+</plist>

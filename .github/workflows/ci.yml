@@ -1,0 +1,263 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture:
+    name: Architecture and release contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install core-only test environment
+        run: python -m pip install -e ".[core]" "pytest>=9,<10"
+      - name: Check architecture and release contracts
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: >
+          python -m pytest
+          tests/test_architecture.py
+          tests/test_release_hardening.py
+          tests/test_release_metadata.py
+          tests/test_product_hardening_rules.py
+          tests/test_ci_reproducibility.py
+          tests/test_ci_runtime_contracts.py
+          -v
+
+  core-tests:
+    name: Core ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    needs: architecture
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install core-only dependencies
+        run: >
+          python -m pip install
+          -e ".[core]"
+          "pytest>=9,<10"
+          "ruff>=0.15,<1"
+      - name: Lint
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Run core tests without third-party plugin autoloading
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python -m pytest tests/core tests/test_architecture.py -v
+
+  gui-tests:
+    name: Linux GUI and Qt WebEngine
+    needs: architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTEST_QT_API: pyside6
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      QT_QPA_PLATFORM: xcb
+      QT_OPENGL: software
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
+      QTWEBENGINE_CHROMIUM_FLAGS: >-
+        --no-sandbox
+        --disable-gpu
+        --disable-gpu-compositing
+        --disable-features=Vulkan
+        --disable-dev-shm-usage
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install complete Linux Qt XCB and WebEngine runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb \
+            xauth \
+            libegl1 \
+            libgl1 \
+            libgl1-mesa-dri \
+            libglx-mesa0 \
+            libopengl0 \
+            libgbm1 \
+            libdrm2 \
+            libdbus-1-3 \
+            libfontconfig1 \
+            libfreetype6 \
+            libglib2.0-0t64 \
+            libnss3 \
+            libnspr4 \
+            libsm6 \
+            libice6 \
+            libx11-6 \
+            libx11-xcb1 \
+            libxext6 \
+            libxfixes3 \
+            libxi6 \
+            libxrender1 \
+            libxrandr2 \
+            libxcursor1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxtst6 \
+            libxss1 \
+            libxshmfence1 \
+            libxkbfile1 \
+            libxkbcommon0 \
+            libxkbcommon-x11-0 \
+            libxcb1 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-shm0 \
+            libxcb-sync1 \
+            libxcb-util1 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1 \
+            libxcb-dri2-0 \
+            libxcb-dri3-0 \
+            libxcb-glx0 \
+            libxcb-present0
+      - name: Install pinned GUI test environment
+        run: >
+          python -m pip install
+          -e ".[dev]"
+          -r requirements/qt-ci.txt
+      - name: Verify Linux Qt shared-library closure
+        run: python scripts/check_qt_linux_runtime.py
+      - name: Prepare isolated runtime directory
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/pawdf-xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/pawdf-xdg-runtime"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/pawdf-xdg-runtime" >> "$GITHUB_ENV"
+      - name: Probe Qt and Qt WebEngine under Xvfb
+        shell: bash
+        run: |
+          xvfb-run --auto-servernum \
+            --server-args="-screen 0 1440x900x24 -nolisten tcp" \
+            python - <<'PY'
+          from PySide6.QtWidgets import QApplication
+          from PySide6.QtWebEngineWidgets import QWebEngineView
+
+          app = QApplication([])
+          view = QWebEngineView()
+          view.resize(800, 600)
+          view.show()
+          app.processEvents()
+          print("Qt xcb and Qt WebEngine runtime OK")
+          view.close()
+          view.deleteLater()
+          app.quit()
+          PY
+      - name: Run isolated GUI tests under Xvfb
+        run: >
+          xvfb-run
+          --auto-servernum
+          --server-args="-screen 0 1440x900x24 -nolisten tcp"
+          python scripts/run_ci_test_partitions.py
+          gui
+          --timeout 150
+
+  windows-build:
+    name: Windows bundle and installer
+    needs: architecture
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install pinned build environment
+        run: >
+          python -m pip install
+          -e ".[dev]"
+          -r requirements/qt-ci.txt
+      - name: Build the bundle
+        run: python scripts/build_pyinstaller.py
+      - name: Check required bundle contents
+        shell: pwsh
+        run: |
+          $missing = @()
+          foreach ($item in @(
+            "dist/pawdf/pawdf.exe",
+            "dist/pawdf/_internal/pawdf/gui/web/index.html",
+            "dist/pawdf/_internal/pawdf/gui/web/app.js",
+            "dist/pawdf/_internal/pawdf/gui/web/fonts/InterVariable.ttf",
+            "dist/pawdf/_internal/pawdf/gui/resources/icons/app_icon.png",
+            "dist/pawdf/legal/LICENSE",
+            "dist/pawdf/legal/THIRD-PARTY-NOTICES.md",
+            "dist/pawdf/legal/README.txt"
+          )) {
+            if (-not (Test-Path $item)) {
+              $missing += $item
+            }
+          }
+          if ($missing) {
+            $missing | ForEach-Object { Write-Error "missing: $_" }
+            exit 1
+          }
+          Write-Host "bundle contents OK"
+      - name: Smoke test packaged executable through subprocess pipes
+        run: python scripts/smoke_packaged.py --dist dist
+      - name: Build the Inno Setup installer
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\installer.iss
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pawdf-windows-setup
+          path: dist/*.exe
+          if-no-files-found: error
+
+  icons-are-reproducible:
+    name: Generated icon pixels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements/icon-generation.txt
+      - name: Verify generated icon pixels
+        run: python scripts/check_generated_icons.py
+
+# PAWDF_CI_REPRODUCIBILITY_V1
+# PAWDF_CI_FINAL_2026_08
+# PAWDF_CI_XCB_RUNTIME_V2
