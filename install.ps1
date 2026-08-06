@@ -43,6 +43,17 @@ function Install-Pawdf {
         Write-Warning "Could not enable TLS 1.2; the download below may fail on this system."
     }
 
+    # Invoke-WebRequest renders a UI progress bar by default, updated on
+    # every chunk received; on Windows PowerShell 5.1 that rendering is slow
+    # enough to fall behind the incoming stream for a file the size of the
+    # installer, and the server or an intermediate proxy closes the
+    # connection on the client for reading too slowly. Confirmed on real
+    # Windows 11 hardware: downloading the ~4.6 KB install.ps1 script itself
+    # never failed this way: only the much larger Setup.exe download did,
+    # with "The request was aborted: The connection was closed
+    # unexpectedly." Suppressing the progress bar is the standard fix.
+    $ProgressPreference = "SilentlyContinue"
+
     $Repository = "aniceswan/Pawdf"
     $Asset = "Pawdf-Windows-x86_64-Setup.exe"
 
