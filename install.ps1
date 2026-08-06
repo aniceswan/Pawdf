@@ -142,4 +142,18 @@ function Install-Pawdf {
     }
 }
 
-Install-Pawdf @args
+# $args is only populated when this runs as an actual file
+# (`.\install.ps1 -Uninstall`); at the interactive prompt or through
+# Invoke-Expression - which is what `irm ... | iex` uses, and that one-liner
+# has no syntax to pass flags through it in the first place - $args is
+# $null, and splatting a null variable throws the same "cannot call a
+# method on a null-valued expression" this rewrite was meant to fix.
+# Confirmed on real Windows 11 hardware: the error moved from
+# Invoke-Expression itself to this exact line once the top-level param()
+# block was removed, isolating it to this splat.
+if ($args) {
+    Install-Pawdf @args
+}
+else {
+    Install-Pawdf
+}
