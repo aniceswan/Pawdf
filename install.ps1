@@ -67,11 +67,27 @@ function Install-Pawdf {
         return
     }
 
-    $Architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
-    if ($Architecture -eq "Arm64") {
+    # [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture was
+    # the original approach here, and confirmed on real Windows 11 hardware
+    # (PowerShell 5.1, build 26100) to throw "cannot call a method on a
+    # null-valued expression" from calling .ToString() on it - the exact
+    # symptom this whole rewrite chased through Invoke-Expression and $args
+    # before isolating it to this specific line. PROCESSOR_ARCHITECTURE is a
+    # plain environment variable Windows has set since XP, with no .NET type
+    # resolution involved at all, so there is nothing left for this to fail
+    # on beyond the environment variable simply being unset.
+    $Architecture = $env:PROCESSOR_ARCHITECTURE
+    if ($env:PROCESSOR_ARCHITEW6432) {
+        # A 32-bit PowerShell process on 64-bit Windows reports "x86" in
+        # PROCESSOR_ARCHITECTURE; PROCESSOR_ARCHITEW6432 carries the real
+        # native architecture in that case.
+        $Architecture = $env:PROCESSOR_ARCHITEW6432
+    }
+
+    if ($Architecture -eq "ARM64") {
         Write-Host "Windows ARM64 detected; installing the x64 build through Windows emulation." -ForegroundColor Yellow
     }
-    elseif ($Architecture -ne "X64") {
+    elseif ($Architecture -ne "AMD64") {
         throw "Unsupported Windows architecture: $Architecture"
     }
 
