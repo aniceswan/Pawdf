@@ -116,15 +116,12 @@ does not exist.
 ### Windows
 
 ```powershell
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 irm https://raw.githubusercontent.com/aniceswan/Pawdf/main/install.ps1 | iex
 ```
 
-The first line forces TLS 1.2, which Windows PowerShell 5.1 (the default
-`powershell.exe`, as opposed to `pwsh`) does not always enable on its own;
-without it, the download can fail silently and `iex` reports a confusing
-"cannot call a method on a null-valued expression" instead of a clear
-network error.
+`install.ps1` itself forces TLS 1.2 before its own downloads, since Windows
+PowerShell 5.1 (the default `powershell.exe`, as opposed to `pwsh`) does not
+always enable it on its own - no need to set it in the one-liner too.
 
 The installer verifies SHA-256 and installs under
 `%LOCALAPPDATA%\Programs\Pawdf` without administrator rights. Windows ARM64

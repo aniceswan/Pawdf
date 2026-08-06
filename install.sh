@@ -66,7 +66,7 @@ case "$OS_NAME" in
         ;;
     *)
         echo "error: this script supports Linux and macOS only." >&2
-        echo "Windows: [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; irm https://raw.githubusercontent.com/aniceswan/Pawdf/main/install.ps1 | iex" >&2
+        echo "Windows: irm https://raw.githubusercontent.com/aniceswan/Pawdf/main/install.ps1 | iex" >&2
         exit 1
         ;;
 esac

@@ -13,16 +13,11 @@ curl -fsSL https://raw.githubusercontent.com/aniceswan/Pawdf/main/install.sh | b
 Windows PowerShell:
 
 ```powershell
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 irm https://raw.githubusercontent.com/aniceswan/Pawdf/main/install.ps1 | iex
 ```
 
-The first line forces TLS 1.2. Windows PowerShell 5.1 does not always enable
-it by default, and without it the `irm` download fails silently: `iex` then
-reports "cannot call a method on a null-valued expression" against the
-`$null` it received, rather than a clear network error. `install.ps1` itself
-also forces TLS 1.2 before its own downloads, so this only matters for the
-one request that fetches the installer script's own content.
+`install.ps1` forces TLS 1.2 before its own downloads, since Windows
+PowerShell 5.1 does not always enable it by default.
 
 No Git, Python, pip, virtual environment, compiler,
 PyInstaller, source checkout, or administrator privileges. They select the
