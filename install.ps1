@@ -121,8 +121,23 @@ function Install-Pawdf {
                 $Base = "https://github.com/$Repository/releases/download/$Version"
             }
             Write-Host "Downloading $Asset..."
-            Invoke-WebRequest -UseBasicParsing -Uri "$Base/$Asset" -OutFile $AssetPath
-            Invoke-WebRequest -UseBasicParsing -Uri "$Base/SHA256SUMS.txt" -OutFile $SumsPath
+            # Invoke-WebRequest on Windows PowerShell 5.1 uses the legacy
+            # System.Net.HttpWebRequest, which is well documented to close
+            # the connection mid-transfer on some GitHub release downloads
+            # after following the github.com -> objects.githubusercontent.com
+            # redirect - confirmed on real Windows 11 hardware, and
+            # unaffected by disabling the progress bar (ruling that out).
+            # System.Net.WebClient does not share this failure mode and
+            # already proved reliable against this same repository during
+            # earlier diagnosis.
+            $WebClient = New-Object System.Net.WebClient
+            try {
+                $WebClient.DownloadFile("$Base/$Asset", $AssetPath)
+                $WebClient.DownloadFile("$Base/SHA256SUMS.txt", $SumsPath)
+            }
+            finally {
+                $WebClient.Dispose()
+            }
         }
 
         $Expected = $null
