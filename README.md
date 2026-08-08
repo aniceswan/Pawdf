@@ -26,10 +26,7 @@ with attribution as the only obligation.
 
 <!-- PAWDF_DOC_SYNC_2026_08:current-ui -->
 
-The screenshot is generated from the current source build. The landing view
-uses an expanded responsive hero, the generated mark has three miniature
-document-shaped paw pads, and tool tiles remain upright both while orbiting
-and after a tool panel opens.
+The screenshot is generated from the current source build.
 
 ---
 
